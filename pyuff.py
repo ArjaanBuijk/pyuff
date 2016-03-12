@@ -59,6 +59,19 @@ Example:
     >>> uff_file.file_exists()
     True
 """
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import zip
+from builtins import open
+from builtins import str
+from builtins import map
+from builtins import range
+from builtins import int
+from builtins import object
+from future import standard_library
+standard_library.install_aliases()
 
 
 import os, sys, struct
@@ -78,7 +91,7 @@ class UFFException(Exception):
         return self.value
 
 
-class UFF:
+class UFF(object):
     """
     Manages data reading and writing from/to the UFF file.
     
