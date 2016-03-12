@@ -11,11 +11,12 @@ For a showcase see: https://github.com/openmodal/pyuff/blob/master/pyuff%20Showc
 
 from setuptools import setup
 setup(name='pyuff',
-      version='1.0.0',
+      version='1.1.0',
       author='Primož Čermelj',
       author_email='primoz.cermelj@gmail.com',
       url='https://github.com/openmodal/pyuff',
       py_modules=['pyuff'],
       long_description=desc,
-      requires=['numpy']
+      requires=['numpy'],
+      install_requires=['future']
       )
