@@ -17,5 +17,5 @@ setup(name='pyuff',
       url='https://github.com/openmodal/pyuff',
       py_modules=['pyuff'],
       long_description=desc,
-      requires=['numpy,future']
+      requires=['numpy']
       )
