@@ -66,7 +66,7 @@ import string
 import time
 import numpy as num
 
-_SUPPORTED_SETS = ['151', '15', '55', '58', '58b', '82', '164']
+_SUPPORTED_SETS = ['151', '15', '55', '58', '58b', '82', '164', '2411']
 
 
 class UFFException(Exception):
@@ -1030,8 +1030,8 @@ class UFF:
         return dset
     
     def _extract2411(self,blockData):
-        # Extract coordinate data - data-set 15.
-        dset = {'type':15}
+        # Extract coordinate data - data-set 2411.
+        dset = {'type':2411}
         try:
             # Body
             splitData = blockData.splitlines(True)      # Keep the line breaks!
@@ -1046,7 +1046,7 @@ class UFF:
             dset['y'] =         values[5::7].copy()
             dset['z'] =         values[6::7].copy()
         except:
-            raise UFFException('Error reading data-set #15')
+            raise UFFException('Error reading data-set #2411')
         return dset
     
     def _extract18(self,blockData):
