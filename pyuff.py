@@ -962,27 +962,7 @@ class UFF:
               
               
     def _write2411(self,fh,dset):
-        try:
-            dict = {'export_cs_number':0,\
-                    'cs_color':8}
-            
-            dset = self._opt_fields(dset,dict)
-            fh.write('%6i\n%6i%74s\n' % (-1,2411,' '))
-            
-            for node in range(dset['grid_global'].shape[0]):
-                fh.write('%10i%10i%10i%10i\n' %(dset['grid_global'][node,0], dset['export_cs_number'],
-                                                dset['grid_global'][node,0], dset['cs_color']))
-    
-                fh.write('%25.16e%25.16e%25.16e\n' %tuple(dset['grid_global'][node,1:]))
-    
-            fh.write('%6i\n' % -1)
-            
-        except:
-            raise UFFException('Error writing data-set #2411')
-     
-    def _write2412(self,fh,dset):
-        # TODO
-        raise UFFException('TODO: IMPLEMENT writing data-set #2412')
+        raise UFFException('TODO: implement writing of data-set #2411')
 #         try:
 #             dict = {'export_cs_number':0,\
 #                     'cs_color':8}
@@ -1000,6 +980,26 @@ class UFF:
 #             
 #         except:
 #             raise UFFException('Error writing data-set #2411')
+     
+    def _write2412(self,fh,dset):
+        raise UFFException('TODO: implement writing of data-set #2412')
+#         try:
+#             dict = {'export_cs_number':0,\
+#                     'cs_color':7}
+#              
+#             dset = self._opt_fields(dset,dict)
+#             fh.write('%6i\n%6i%74s\n' % (-1,2412,' '))
+#              
+#             for node in range(dset['grid_global'].shape[0]):
+#                 fh.write('%10i%10i%10i%10i\n' %(dset['grid_global'][node,0], dset['export_cs_number'],
+#                                                 dset['grid_global'][node,0], dset['cs_color']))
+#      
+#                 fh.write('%25.16e%25.16e%25.16e\n' %tuple(dset['grid_global'][node,1:]))
+#      
+#             fh.write('%6i\n' % -1)
+#              
+#         except:
+#             raise UFFException('Error writing data-set #2412')
            
 
     # TODO: Big deal - the output dictionary when reading this set
