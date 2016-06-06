@@ -8,7 +8,7 @@ defines an UFF class to manipulate with the
 UFF (Universal File Format) files, i.e., to read from and write
 to UFF files. Among the variety of UFF formats, only some of the
 formats (data-set types) frequently used in structural dynamics
-are supported: **151, 15, 55, 58, 58b, 82, 164.** Data-set **58b**
+are supported: **151, 15, 55, 58, 58b, 82, 164, 2411, 2412.** Data-set **58b**
 is actually a hybrid format [1]_ where the signal is written in the
 binary form, while the header-part is slightly different from 58 but still in the
 ascii format.
@@ -21,7 +21,7 @@ more information about the UFF format.
 This module also provides an exception handler class, ``UFFException``.
 
 Sources:
-    .. [1] http://www.sdrl.uc.edu/uff/SDRChelp/LANG/English/unv_ug/book.htm
+    .. [1] http://www.sdrl.uc.edu/sdrl/sdrl/sdrl/sdrl/sdrl/sdrl/referenceinfo/universalfileformats/file-format-storehouse?b_start:int=0
     .. [2] Matlab's ``readuff`` and ``writeuff`` functions:
        http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=6395
 
@@ -66,7 +66,7 @@ import string
 import time
 import numpy as num
 
-_SUPPORTED_SETS = ['151', '15', '55', '58', '58b', '82', '164', '2411']
+_SUPPORTED_SETS = ['151', '15', '55', '58', '58b', '82', '164', '2411', '2412']
 
 
 class UFFException(Exception):
@@ -85,7 +85,7 @@ class UFF:
     The UFF class instance requires exactly 1 parameter - a file name of a
     universal file. If the file does not exist, no basic file info will be
     extracted and the status will be False - indicating that the file is not
-    refreshed. Hovewer, when one tries to read one or more data-sets, the file
+    refreshed. However, when one tries to read one or more data-sets, the file
     must exist or the UFFException will be raised.
     
     The file, given as a parameter to the UFF instance, is open only when
@@ -101,13 +101,13 @@ class UFF:
     Appendix
     --------
     Below are the fileds for all the data sets supported. <..> designates an
-    *optional* field, i.e., a field that is not needed when writting to a file
-    as the field has a defualt value. Additionally, <<..>> designates fields that
+    *optional* field, i.e., a field that is not needed when writing to a file
+    as the field has a default value. Additionally, <<..>> designates fields that
     are *ignored* when writing (not needed at all); these fields are defined
     automatically.
     
     Moreover, there are also some fields that are data-type dependent, i.e.,
-    some fields that are onyl used/available for some specific data-type. E.g.,
+    some fields that are only used/available for some specific data-type. E.g.,
     see ``modal_damp_vis`` at Data-set 55.
         
     **Data-set 15 (points data)**:
@@ -256,6 +256,33 @@ class UFF:
         * ``<<'n_data_per_node'>>``-- *number of data per node (DOFs)*
         * ``<<'data_type'>>``      -- *data type number; 2 = real data,
           5 = complex data*
+          
+    **Data-set 2411 (points data) - Double Precision**:
+        
+        * ``'type'``               -- *type number = 2411*
+        * ``'node_nums'``          -- *list of n node numbers*
+        * ``'x'``                  -- *x-coordinates of the n nodes* (double precision)
+        * ``'y'``                  -- *y-coordinates of the n nodes* (double precision)
+        * ``'z'``                  -- *z-coordinates of the n nodes* (double precision)
+        * ``<'def_cs'>``           -- *n deformation cs numbers*
+        * ``<'disp_cs'>``          -- *n displacement cs numbers*
+        * ``<'color'>``            -- *n color numbers*
+        
+    **Data-set 2412 (elements)**:
+        
+        * ``'type'``               -- *type number = 2412*
+        * ``'element_nums'``       -- *list of n element numbers*
+        * ``'fe_descriptor_id'``   -- *fe descriptor id* 
+        * ``'physical_prop'``      -- *physical property table number*
+        * ``'material_prop'``      -- *material property table number* 
+        * ``<'color'>``            -- *n color numbers*
+        * ``'num_nodes'``          -- *number of nodes on element*
+        * ``'nodes'``              -- *node labels defining element*
+            for beam elements:
+        * ``'beam_orient_node'``   -- *beam orientation node number*
+        * ``'beam_cs1_node'``      -- *beam fore-end cross section number*
+        * ``'beam_cs2_node'``      -- *beam  aft-end cross section number*
+          
     """
     def __init__(self, fileName):
         """
@@ -512,8 +539,8 @@ class UFF:
                 fh.close()
         # Extracts the dset
         if self._setTypes[int(n)] == 15:  dset = self._extract15(blockData)
-        elif self._setTypes[int(n)] == 2411:  dset = self._extract2411(blockData) # TEMP ADD
-        elif self._setTypes[int(n)] == 2412:  dset = self._extract15(blockData) # TEMP ADD
+        elif self._setTypes[int(n)] == 2411:  dset = self._extract2411(blockData)
+        elif self._setTypes[int(n)] == 2412:  dset = self._extract2412(blockData)
         elif self._setTypes[int(n)] == 18:  dset = self._extract18(blockData) # TEMP ADD
         elif self._setTypes[int(n)]==82:  dset = self._extract82(blockData)
         elif self._setTypes[int(n)]==2420:  dset = self._extract2420(blockData)
@@ -563,6 +590,7 @@ class UFF:
             elif setType == 55:     self._write55(fh,dset)
             elif setType == 58:     self._write58(fh,dset)
             elif setType == 2411:   self._write2411(fh,dset)
+            elif setType == 2412:   self._write2412(fh,dset)
             elif setType == 2420:   self._write2420(fh,dset)
             else:
                 # Unsupported data-set - do nothing
@@ -934,24 +962,45 @@ class UFF:
               
               
     def _write2411(self,fh,dset):
-        try:
-            dict = {'export_cs_number':0,\
-                    'cs_color':8}
-            
-            dset = self._opt_fields(dset,dict)
-            fh.write('%6i\n%6i%74s\n' % (-1,2411,' '))
-            
-            for node in range(dset['grid_global'].shape[0]):
-                fh.write('%10i%10i%10i%10i\n' %(dset['grid_global'][node,0], dset['export_cs_number'],
-                                                dset['grid_global'][node,0], dset['cs_color']))
-    
-                fh.write('%25.16e%25.16e%25.16e\n' %tuple(dset['grid_global'][node,1:]))
-    
-            fh.write('%6i\n' % -1)
-            
-        except:
-            raise UFFException('Error writing data-set #2411')
-        
+        raise UFFException('TODO: implement writing of data-set #2411')
+#         try:
+#             dict = {'export_cs_number':0,\
+#                     'cs_color':8}
+#             
+#             dset = self._opt_fields(dset,dict)
+#             fh.write('%6i\n%6i%74s\n' % (-1,2411,' '))
+#             
+#             for node in range(dset['grid_global'].shape[0]):
+#                 fh.write('%10i%10i%10i%10i\n' %(dset['grid_global'][node,0], dset['export_cs_number'],
+#                                                 dset['grid_global'][node,0], dset['cs_color']))
+#     
+#                 fh.write('%25.16e%25.16e%25.16e\n' %tuple(dset['grid_global'][node,1:]))
+#     
+#             fh.write('%6i\n' % -1)
+#             
+#         except:
+#             raise UFFException('Error writing data-set #2411')
+     
+    def _write2412(self,fh,dset):
+        raise UFFException('TODO: implement writing of data-set #2412')
+#         try:
+#             dict = {'export_cs_number':0,\
+#                     'cs_color':7}
+#              
+#             dset = self._opt_fields(dset,dict)
+#             fh.write('%6i\n%6i%74s\n' % (-1,2412,' '))
+#              
+#             for node in range(dset['grid_global'].shape[0]):
+#                 fh.write('%10i%10i%10i%10i\n' %(dset['grid_global'][node,0], dset['export_cs_number'],
+#                                                 dset['grid_global'][node,0], dset['cs_color']))
+#      
+#                 fh.write('%25.16e%25.16e%25.16e\n' %tuple(dset['grid_global'][node,1:]))
+#      
+#             fh.write('%6i\n' % -1)
+#              
+#         except:
+#             raise UFFException('Error writing data-set #2412')
+           
 
     # TODO: Big deal - the output dictionary when reading this set
     #    is different than the dictionary that is expected (keys) when
@@ -1048,7 +1097,225 @@ class UFF:
         except:
             raise UFFException('Error reading data-set #2411')
         return dset
-    
+ 
+    def _extract2412(self,blockData):
+        '''
+        Added by Arjaan Buijk, 6/Jun/2016
+        
+        data set description:
+        http://www.sdrl.uc.edu/sdrl/referenceinfo/universalfileformats/file-format-storehouse/universal-dataset-number-2412
+        
+        Name:   Elements
+        Status: Current
+        Owner:  Simulation
+        Revision Date: 14-AUG-1992
+        -----------------------------------------------------------------------
+         
+        Record 1:        FORMAT(6I10)
+                         Field 1       -- element label
+                         Field 2       -- fe descriptor id
+                         Field 3       -- physical property table number
+                         Field 4       -- material property table number
+                         Field 5       -- color
+                         Field 6       -- number of nodes on element
+         
+        Record 2:  *** FOR NON-BEAM ELEMENTS ***
+                         FORMAT(8I10)
+                         Fields 1-n    -- node labels defining element
+         
+        Record 2:  *** FOR BEAM ELEMENTS ONLY ***
+                         FORMAT(3I10)
+                         Field 1       -- beam orientation node number
+                         Field 2       -- beam fore-end cross section number
+                         Field 3       -- beam  aft-end cross section number
+         
+        Record 3:  *** FOR BEAM ELEMENTS ONLY ***
+                         FORMAT(8I10)
+                         Fields 1-n    -- node labels defining element
+         
+        Records 1 and 2 are repeated for each non-beam element in the model.
+        Records 1 - 3 are repeated for each beam element in the model.
+         
+        Example:
+         
+            -1
+          2412
+                 1        11         1      5380         7         2
+                 0         1         1
+                 1         2
+                 2        21         2      5380         7         2
+                 0         1         1
+                 3         4
+                 3        22         3      5380         7         2
+                 0         1         2
+                 5         6
+                 6        91         6      5380         7         3
+                11        18        12
+                 9        95         6      5380         7         8
+                22        25        29        30        31        26        24        23
+                14       136         8         0         7         2
+                53        54
+                36       116        16      5380         7        20
+               152       159       168       167       166       158       150       151
+               154       170       169       153       157       161       173       172
+               171       160       155       156
+            -1
+            
+        FE Descriptor Id definitions
+        ____________________________
+           11  Rod
+           21  Linear beam
+           22  Tapered beam
+           23  Curved beam
+           24  Parabolic beam
+           31  Straight pipe
+           32  Curved pipe
+           41  Plane Stress Linear Triangle
+           42  Plane Stress Parabolic Triangle
+           43  Plane Stress Cubic Triangle
+           44  Plane Stress Linear Quadrilateral
+           45  Plane Stress Parabolic Quadrilateral
+           46  Plane Strain Cubic Quadrilateral
+           51  Plane Strain Linear Triangle
+           52  Plane Strain Parabolic Triangle
+           53  Plane Strain Cubic Triangle
+           54  Plane Strain Linear Quadrilateral
+           55  Plane Strain Parabolic Quadrilateral
+           56  Plane Strain Cubic Quadrilateral
+           61  Plate Linear Triangle
+           62  Plate Parabolic Triangle
+           63  Plate Cubic Triangle
+           64  Plate Linear Quadrilateral
+           65  Plate Parabolic Quadrilateral
+           66  Plate Cubic Quadrilateral
+           71  Membrane Linear Quadrilateral
+           72  Membrane Parabolic Triangle
+           73  Membrane Cubic Triangle
+           74  Membrane Linear Triangle
+           75  Membrane Parabolic Quadrilateral
+           76  Membrane Cubic Quadrilateral
+           81  Axisymetric Solid Linear Triangle
+           82  Axisymetric Solid Parabolic Triangle
+           84  Axisymetric Solid Linear Quadrilateral
+           85  Axisymetric Solid Parabolic Quadrilateral
+           91  Thin Shell Linear Triangle
+           92  Thin Shell Parabolic Triangle
+           93  Thin Shell Cubic Triangle
+           94  Thin Shell Linear Quadrilateral
+           95  Thin Shell Parabolic Quadrilateral
+           96  Thin Shell Cubic Quadrilateral
+           101 Thick Shell Linear Wedge
+           102 Thick Shell Parabolic Wedge
+           103 Thick Shell Cubic Wedge
+           104 Thick Shell Linear Brick
+           105 Thick Shell Parabolic Brick
+           106 Thick Shell Cubic Brick
+           111 Solid Linear Tetrahedron
+           112 Solid Linear Wedge
+           113 Solid Parabolic Wedge
+           114 Solid Cubic Wedge
+           115 Solid Linear Brick
+           116 Solid Parabolic Brick
+           117 Solid Cubic Brick
+           118 Solid Parabolic Tetrahedron
+           121 Rigid Bar
+           122 Rigid Element
+           136 Node To Node Translational Spring
+           137 Node To Node Rotational Spring
+           138 Node To Ground Translational Spring
+           139 Node To Ground Rotational Spring
+           141 Node To Node Damper
+           142 Node To Gound Damper
+           151 Node To Node Gap
+           152 Node To Ground Gap
+           161 Lumped Mass
+           171 Axisymetric Linear Shell
+           172 Axisymetric Parabolic Shell
+           181 Constraint
+           191 Plastic Cold Runner
+           192 Plastic Hot Runner
+           193 Plastic Water Line
+           194 Plastic Fountain
+           195 Plastic Baffle
+           196 Plastic Rod Heater
+           201 Linear node-to-node interface
+           202 Linear edge-to-edge interface
+           203 Parabolic edge-to-edge interface
+           204 Linear face-to-face interface
+           208 Parabolic face-to-face interface
+           212 Linear axisymmetric interface
+           213 Parabolic axisymmetric interface
+           221 Linear rigid surface
+           222 Parabolic rigin surface
+           231 Axisymetric linear rigid surface
+           232 Axisymentric parabolic rigid surface
+        -----------------------------------------------------------------------
+        '''
+        # Define beam types
+        BEAM_TYPES = (11, 21, 22, 23, 24, 31, 32, 121, 122)
+
+        dset = {'type':2412}
+        try:
+            splitData = blockData.splitlines(True)      # Keep the line breaks!
+            splitData = ''.join(splitData[2:])   # ..as they are again needed
+            splitData = splitData.split()
+            values = num.asarray([float(str) for str in splitData],'d')
+            
+            # parse the block, and fill regular python lists
+            element_nums        = []
+            fe_descriptor_id    = []
+            physical_prop       = []
+            material_prop       = []
+            color               = []
+            num_nodes           = []
+            nodes               = []
+            beam_orient_node    = []
+            beam_cs1_node       = []
+            beam_cs2_node       = []
+            count = 0
+            nel   = 0
+            while True:
+                element_nums.append     ( int(values[count+0]) )
+                fe_descriptor_id.append ( int(values[count+1]) )
+                physical_prop.append    ( int(values[count+2]) )
+                material_prop.append    ( int(values[count+3]) )
+                color.append            ( int(values[count+4]) )
+                num_nodes.append        ( int(values[count+5]) )
+                count += 6
+                
+                if fe_descriptor_id[nel] in BEAM_TYPES:
+                  beam_orient_node.append( int(values[count+0]) )
+                  beam_cs1_node.append   ( int(values[count+1]) )
+                  beam_cs2_node.append   ( int(values[count+2]) )   
+                  count += 3
+                  
+                element_nodes = [ int(values[count+ii]) for ii in range(num_nodes[nel]) ]
+                nodes.append(element_nodes)
+                count += num_nodes[nel]
+                
+                if count >= len(values) :
+                    break
+                
+                nel +=1
+                
+                        
+            # store python lists as numpy arrays into data set
+            dset['element_nums'     ] = num.array(element_nums    )
+            dset['fe_descriptor_id' ] = num.array(fe_descriptor_id)
+            dset['physical_prop'    ] = num.array(physical_prop   )
+            dset['material_prop'    ] = num.array(material_prop   )
+            dset['color'            ] = num.array(color           )
+            dset['num_nodes'        ] = num.array(num_nodes       )
+            dset['nodes'            ] = num.array(nodes           )
+            dset['beam_orient_node' ] = num.array(beam_orient_node)
+            dset['beam_cs1_node'    ] = num.array(beam_cs1_node   )
+            dset['beam_cs2_node'    ] = num.array(beam_cs2_node   )
+            
+               
+        except:
+            raise UFFException('Error reading data-set #2412')
+        return dset
+       
     def _extract18(self,blockData):
         '''Extract local CS definitions -- data-set 18.'''
         dset = {'type':18}
