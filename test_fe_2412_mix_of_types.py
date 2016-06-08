@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyuff
 
-uff_file = pyuff.UFF('data/fe_id_111_solid_linear_tetrahedron.unv')
+uff_file = pyuff.UFF('data/fe_2412_mix_of_types.uff')
 if uff_file.file_exists() is True:
     print('Successfully opened file: ' + uff_file.get_file_name() )
 else:

@@ -66,7 +66,8 @@ import string
 import time
 import numpy as num
 
-_SUPPORTED_SETS = ['151', '15', '55', '58', '58b', '82', '164', '2411', '2412']
+_SUPPORTED_SETS = ['151', '15', '55', '58', '58b', '82', '164', 
+                   '2411', '2412', '2414']
 
 
 class UFFException(Exception):
@@ -1082,7 +1083,6 @@ class UFF:
         # Extract coordinate data - data-set 2411.
         dset = {'type':2411}
         try:
-            # Body
             splitData = blockData.splitlines(True)      # Keep the line breaks!
             splitData = ''.join(splitData[2:])   # ..as they are again needed
             splitData = splitData.split()
@@ -1105,151 +1105,92 @@ class UFF:
         data set description:
         http://www.sdrl.uc.edu/sdrl/referenceinfo/universalfileformats/file-format-storehouse/universal-dataset-number-2412
         
-        Name:   Elements
-        Status: Current
-        Owner:  Simulation
-        Revision Date: 14-AUG-1992
-        -----------------------------------------------------------------------
-         
-        Record 1:        FORMAT(6I10)
-                         Field 1       -- element label
-                         Field 2       -- fe descriptor id
-                         Field 3       -- physical property table number
-                         Field 4       -- material property table number
-                         Field 5       -- color
-                         Field 6       -- number of nodes on element
-         
-        Record 2:  *** FOR NON-BEAM ELEMENTS ***
-                         FORMAT(8I10)
-                         Fields 1-n    -- node labels defining element
-         
-        Record 2:  *** FOR BEAM ELEMENTS ONLY ***
-                         FORMAT(3I10)
-                         Field 1       -- beam orientation node number
-                         Field 2       -- beam fore-end cross section number
-                         Field 3       -- beam  aft-end cross section number
-         
-        Record 3:  *** FOR BEAM ELEMENTS ONLY ***
-                         FORMAT(8I10)
-                         Fields 1-n    -- node labels defining element
-         
-        Records 1 and 2 are repeated for each non-beam element in the model.
-        Records 1 - 3 are repeated for each beam element in the model.
-         
-        Example:
-         
-            -1
-          2412
-                 1        11         1      5380         7         2
-                 0         1         1
-                 1         2
-                 2        21         2      5380         7         2
-                 0         1         1
-                 3         4
-                 3        22         3      5380         7         2
-                 0         1         2
-                 5         6
-                 6        91         6      5380         7         3
-                11        18        12
-                 9        95         6      5380         7         8
-                22        25        29        30        31        26        24        23
-                14       136         8         0         7         2
-                53        54
-                36       116        16      5380         7        20
-               152       159       168       167       166       158       150       151
-               154       170       169       153       157       161       173       172
-               171       160       155       156
-            -1
+        
+        '''
+        # Define beam types
+        BEAM_TYPES = (11, 21, 22, 23, 24, 31, 32, 121, 122)
+
+        dset = {'type':2412}
+        try:
+            # TODO: 
+            # Replace the 'split' approach with actual formatted reads.
+            #
+            splitData = blockData.splitlines(True)      # Keep the line breaks!
+            splitData = ''.join(splitData[2:])   # ..as they are again needed
+            splitData = splitData.split()
+            values = num.asarray([float(str) for str in splitData],'d')
             
-        FE Descriptor Id definitions
-        ____________________________
-           11  Rod
-           21  Linear beam
-           22  Tapered beam
-           23  Curved beam
-           24  Parabolic beam
-           31  Straight pipe
-           32  Curved pipe
-           41  Plane Stress Linear Triangle
-           42  Plane Stress Parabolic Triangle
-           43  Plane Stress Cubic Triangle
-           44  Plane Stress Linear Quadrilateral
-           45  Plane Stress Parabolic Quadrilateral
-           46  Plane Strain Cubic Quadrilateral
-           51  Plane Strain Linear Triangle
-           52  Plane Strain Parabolic Triangle
-           53  Plane Strain Cubic Triangle
-           54  Plane Strain Linear Quadrilateral
-           55  Plane Strain Parabolic Quadrilateral
-           56  Plane Strain Cubic Quadrilateral
-           61  Plate Linear Triangle
-           62  Plate Parabolic Triangle
-           63  Plate Cubic Triangle
-           64  Plate Linear Quadrilateral
-           65  Plate Parabolic Quadrilateral
-           66  Plate Cubic Quadrilateral
-           71  Membrane Linear Quadrilateral
-           72  Membrane Parabolic Triangle
-           73  Membrane Cubic Triangle
-           74  Membrane Linear Triangle
-           75  Membrane Parabolic Quadrilateral
-           76  Membrane Cubic Quadrilateral
-           81  Axisymetric Solid Linear Triangle
-           82  Axisymetric Solid Parabolic Triangle
-           84  Axisymetric Solid Linear Quadrilateral
-           85  Axisymetric Solid Parabolic Quadrilateral
-           91  Thin Shell Linear Triangle
-           92  Thin Shell Parabolic Triangle
-           93  Thin Shell Cubic Triangle
-           94  Thin Shell Linear Quadrilateral
-           95  Thin Shell Parabolic Quadrilateral
-           96  Thin Shell Cubic Quadrilateral
-           101 Thick Shell Linear Wedge
-           102 Thick Shell Parabolic Wedge
-           103 Thick Shell Cubic Wedge
-           104 Thick Shell Linear Brick
-           105 Thick Shell Parabolic Brick
-           106 Thick Shell Cubic Brick
-           111 Solid Linear Tetrahedron
-           112 Solid Linear Wedge
-           113 Solid Parabolic Wedge
-           114 Solid Cubic Wedge
-           115 Solid Linear Brick
-           116 Solid Parabolic Brick
-           117 Solid Cubic Brick
-           118 Solid Parabolic Tetrahedron
-           121 Rigid Bar
-           122 Rigid Element
-           136 Node To Node Translational Spring
-           137 Node To Node Rotational Spring
-           138 Node To Ground Translational Spring
-           139 Node To Ground Rotational Spring
-           141 Node To Node Damper
-           142 Node To Gound Damper
-           151 Node To Node Gap
-           152 Node To Ground Gap
-           161 Lumped Mass
-           171 Axisymetric Linear Shell
-           172 Axisymetric Parabolic Shell
-           181 Constraint
-           191 Plastic Cold Runner
-           192 Plastic Hot Runner
-           193 Plastic Water Line
-           194 Plastic Fountain
-           195 Plastic Baffle
-           196 Plastic Rod Heater
-           201 Linear node-to-node interface
-           202 Linear edge-to-edge interface
-           203 Parabolic edge-to-edge interface
-           204 Linear face-to-face interface
-           208 Parabolic face-to-face interface
-           212 Linear axisymmetric interface
-           213 Parabolic axisymmetric interface
-           221 Linear rigid surface
-           222 Parabolic rigin surface
-           231 Axisymetric linear rigid surface
-           232 Axisymentric parabolic rigid surface
-        -----------------------------------------------------------------------
+            # parse the block, and fill regular python lists
+            element_nums        = []
+            fe_descriptor_id    = []
+            physical_prop       = []
+            material_prop       = []
+            color               = []
+            num_nodes           = []
+            nodes               = []
+            beam_orient_node    = []
+            beam_cs1_node       = []
+            beam_cs2_node       = []
+            count = 0
+            nel   = 0
+            while True:
+                element_nums.append     ( int(values[count+0]) )
+                fe_descriptor_id.append ( int(values[count+1]) )
+                physical_prop.append    ( int(values[count+2]) )
+                material_prop.append    ( int(values[count+3]) )
+                color.append            ( int(values[count+4]) )
+                num_nodes.append        ( int(values[count+5]) )
+                count += 6
+                
+                if fe_descriptor_id[nel] in BEAM_TYPES:
+                  beam_orient_node.append( int(values[count+0]) )
+                  beam_cs1_node.append   ( int(values[count+1]) )
+                  beam_cs2_node.append   ( int(values[count+2]) )   
+                  count += 3
+                  
+                element_nodes = [ int(values[count+ii]) for ii in range(num_nodes[nel]) ]
+                nodes.append(element_nodes)
+                count += num_nodes[nel]
+                
+                if count >= len(values) :
+                    break
+                
+                nel +=1
+                
+                        
+            # if needed, pad nodes lists to get equal column size
+            # that way, it maps nicely on a 2D numpy array
+            max_nodes = max(num_nodes)
+            min_nodes = min(num_nodes)
+            if max_nodes > min_nodes:
+                for element_nodes in nodes:
+                    for i in range(len(element_nodes),max_nodes):
+                        element_nodes.append(None)
+            
+            # store python lists as numpy arrays into data set
+            dset['element_nums'     ] = num.array(element_nums    )
+            dset['fe_descriptor_id' ] = num.array(fe_descriptor_id)
+            dset['physical_prop'    ] = num.array(physical_prop   )
+            dset['material_prop'    ] = num.array(material_prop   )
+            dset['color'            ] = num.array(color           )
+            dset['num_nodes'        ] = num.array(num_nodes       )
+            dset['nodes'            ] = num.array(nodes           )
+            dset['beam_orient_node' ] = num.array(beam_orient_node)
+            dset['beam_cs1_node'    ] = num.array(beam_cs1_node   )
+            dset['beam_cs2_node'    ] = num.array(beam_cs2_node   )
+            
+               
+        except:
+            raise UFFException('Error reading data-set #2412')
+        return dset
+    
+    def _extract2414(self,blockData):
+        '''
+        Added by Arjaan Buijk, 6/Jun/2016
+        
+        data set description:
+        http://www.sdrl.uc.edu/sdrl/referenceinfo/universalfileformats/file-format-storehouse/universal-dataset-number-2414
+        
         '''
         # Define beam types
         BEAM_TYPES = (11, 21, 22, 23, 24, 31, 32, 121, 122)
